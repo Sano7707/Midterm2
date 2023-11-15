@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val viewModel = ViewModelProvider(this)[ToDoViewModel::class.java]
+        val viewModel = ViewModelProvider(this)[UserViewModel::class.java]
 
         setContent {
             AppUI(viewModel = viewModel)
@@ -40,18 +40,17 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun AppUI(viewModel: ToDoViewModel) {
-        viewModel.todos.observe(this) {
+    fun AppUI(viewModel: UserViewModel) {
+        viewModel.users.observe(this) {
             setContent {
                 Column {
                     TopAppBar(
-                        title = { Text(text = "Todo List") }
+                        title = { Text(text = "User List") }
                     )
-
                     if (it.isNullOrEmpty()) {
-                        Text(text = "Loading todos...")
+                        Text(text = "Loading users...")
                     } else {
-                        ToDoList(todos = it)
+                        UserList(users = it)
                     }
                 }
             }
@@ -59,17 +58,17 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-class ToDoViewModel : ViewModel() {
-    private val todoService = RetrofitClient.todoService
+class UserViewModel : ViewModel() {
+    private val userService = RetrofitClient.getUsers
 
-    private val _todos = MutableLiveData<List<Todo>>()
-    val todos: LiveData<List<Todo>> get() = _todos
+    private val _users = MutableLiveData<List<User>>()
+    val users: LiveData<List<User>> get() = _users
 
     init {
         viewModelScope.launch {
             try {
-                val response = todoService.getToDos()
-                _todos.value = response
+                val response = userService.getUsers()
+                _users.value = response
             } catch (e: Exception) {
                 Log.e("Retrofit", "Error fetching user data", e)
             }
@@ -78,9 +77,9 @@ class ToDoViewModel : ViewModel() {
 }
 
 @Composable
-fun ToDoList(todos: List<Todo>) {
+fun UserList(users: List<User>) {
     LazyColumn {
-        items(todos) { todo ->
+        items(users) { user ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -97,8 +96,13 @@ fun ToDoList(todos: List<Todo>) {
                             .padding(16.dp)
                     ) {
                         Text(
-                            text = todo.title,
+                            text = user.name,
                             style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = user.email,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     }
@@ -110,7 +114,7 @@ fun ToDoList(todos: List<Todo>) {
 }
 
 object RetrofitClient {
-    private const val BASE_URL = "https://jsonplaceholder.typicode.com/"
+    private const val BASE_URL = "https://jsonplaceholder.typicode.com"
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
@@ -119,19 +123,13 @@ object RetrofitClient {
             .build()
     }
 
-    val todoService: ToDoService by lazy {
-        retrofit.create(ToDoService::class.java)
+    val getUsers: UserService by lazy {
+        retrofit.create(UserService::class.java)
     }
 }
 
-data class Todo(
-    val userId: Int,
-    val id: Int,
-    val title: String,
-    val completed: Boolean
-)
 
-interface ToDoService {
-    @GET("todos")
-    suspend fun getToDos(): List<Todo>
+interface UserService {
+    @GET("users")
+    suspend fun getUsers(): List<User>
 }
